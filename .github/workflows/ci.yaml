@@ -9,48 +9,48 @@ permissions:
   contents: read
 
 env:
-  DAGGER_VERSION: 0.11.6
+  DAGGER_VERSION: 0.11.7
 
 jobs:
-  build:
-    name: Build
-    runs-on: ubuntu-latest
+  #build:
+    #name: Build
+    #runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+    #steps:
+      #- name: Checkout repository
+        #uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
 
-      - name: Set up Nix
-        uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
-        with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+      #- name: Set up Nix
+        #uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
+        #with:
+          #extra_nix_config: |
+            #access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up magic Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@b46e247b898aa56e6d2d2e728dc6df6c84fdb738 # v7
+      #- name: Set up magic Nix cache
+        #uses: DeterminateSystems/magic-nix-cache-action@b46e247b898aa56e6d2d2e728dc6df6c84fdb738 # v7
 
-      - name: Prepare Nix shell
-        run: nix develop --impure .#ci
+      #- name: Prepare Nix shell
+        #run: nix develop --impure .#ci
 
-      - name: Build Server
-        run: nix develop --impure .#ci -c make build-server
+      #- name: Build Server
+        #run: nix develop --impure .#ci -c make build-server
 
-      - name: Build Sink Worker
-        run: nix develop --impure .#ci -c make build-sink-worker
+      #- name: Build Sink Worker
+        #run: nix develop --impure .#ci -c make build-sink-worker
 
-  test:
-    name: Test
-    runs-on: ubuntu-latest
+  #test:
+    #name: Test
+    #runs-on: ubuntu-latest
 
-    steps:
-      - name: Run pipeline
-        uses: dagger/dagger-for-github@158efd19b6af5ff000289d6c7c507ada3c7b3b9b # v5.8.0
-        with:
-          verb: call
-          module: github.com/${{ github.repository }}@${{ github.ref }}
-          args: --ref ${{ github.ref }} test
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: ${{ env.DAGGER_VERSION }}
+    #steps:
+      #- name: Run pipeline
+        #uses: dagger/dagger-for-github@158efd19b6af5ff000289d6c7c507ada3c7b3b9b # v5.8.0
+        #with:
+          #verb: call
+          #module: github.com/${{ github.repository }}@${{ github.ref }}
+          #args: --ref ${{ github.ref }} test
+          #cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          #version: ${{ env.DAGGER_VERSION }}
 
   lint:
     name: Lint
@@ -66,186 +66,8 @@ jobs:
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
           version: ${{ env.DAGGER_VERSION }}
 
-  commit-hooks:
-    name: Commit hooks
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
-        with:
-          fetch-depth: 0
-
-      - name: Free disk space
-        uses: ./.github/actions/free-disk-space
-
-      - name: Set up Nix
-        uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
-        with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up magic Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@b46e247b898aa56e6d2d2e728dc6df6c84fdb738 # v7
-
-      - name: Prepare Nix shell
-        run: nix develop --impure .#ci
-
-      - name: Pre-commit hooks
-        run: nix develop --impure .#ci -c pre-commit run -a
-
-      - name: Check commit messages
-        run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
-
-  dev:
-    name: Developer environment
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
-
-      - name: Set up Nix
-        uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
-        with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up magic Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@b46e247b898aa56e6d2d2e728dc6df6c84fdb738 # v7
-
-      - name: Check
-        run: nix flake check --impure
-
-      - name: Dev shell
-        run: nix develop --impure
-
-  artifacts:
-    name: Artifacts
-    uses: ./.github/workflows/artifacts.yaml
-    with:
-      publish: ${{ github.event_name == 'push' }}
-    permissions:
-      contents: read
-      packages: write
-      id-token: write
-      security-events: write
-
-  dependency-review:
-    name: Dependency review
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
-
-      - name: Dependency Review
-        uses: actions/dependency-review-action@72eb03d02c7872a771aacd928f3123ac62ad6d3a # v4.3.3
-
-  fossa-scan:
-    name: FOSSA Scan
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push'
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
-
-      - name: Run FOSSA Scan
-        uses: fossas/fossa-action@47ef11b1e1e3812e88dae436ccbd2d0cbd1adab0 # v1.3.3
-        with:
-          api-key: ${{secrets.FOSSA_API_KEY}}
-
-  quickstart:
-    name: Quickstart
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
-
-      - name: Launch Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml up -d
-        working-directory: quickstart
-
-      - name: Wait for worker to become ready
-        run: curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:10000/healthz
-
-      - name: Run tests
-        uses: dagger/dagger-for-github@158efd19b6af5ff000289d6c7c507ada3c7b3b9b # v5.8.0
-        with:
-          verb: call
-          args: --source .:default quickstart-test --service tcp://localhost:8888 --port 8888
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: ${{ env.DAGGER_VERSION }}
-
-      - name: Cleanup Docker Compose
-        run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml down -v
-        working-directory: quickstart
-        if: always()
-
-  e2e:
-    name: E2E
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@v1.3.1
-        with:
-          # Runs quick, run rm in background
-          tool-cache: true
-
-          # These run slower as use apt to uninstall packages
-          # Turned on by default, so we disable them
-          android: false
-          dotnet: false
-          haskell: false
-          large-packages: false
-          docker-images: false
-          swap-storage: false
-
-      - name: Run pipeline
-        uses: dagger/dagger-for-github@158efd19b6af5ff000289d6c7c507ada3c7b3b9b # v5.8.0
-        with:
-          verb: call
-          module: github.com/${{ github.repository }}@${{ github.ref }}
-          args: --ref ${{ github.ref }} etoe
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: ${{ env.DAGGER_VERSION }}
-
-  dagger:
-    name: CI
-    runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
-
-    steps:
-      - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@v1.3.1
-        with:
-          # Runs quick, run rm in background
-          tool-cache: true
-
-          # These run slower as use apt to uninstall packages
-          # Turned on by default, so we disable them
-          android: false
-          dotnet: false
-          haskell: false
-          large-packages: false
-          docker-images: false
-          swap-storage: false
-
-      - name: Run pipeline
-        uses: dagger/dagger-for-github@158efd19b6af5ff000289d6c7c507ada3c7b3b9b # v5.8.0
-        timeout-minutes: 40
-        with:
-          verb: call
-          module: github.com/${{ github.repository }}@${{ github.ref }}
-          args: --ref ${{ github.ref }} ci
-          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-          version: ${{ env.DAGGER_VERSION }}
-
       - name: Export Dagger Engine logs
-        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') > engine.log
+        run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') 2> engine.log
         if: always()
 
       - name: Upload Dagger Engine logs as artifact
@@ -255,3 +77,193 @@ jobs:
           name: "Dagger Engine logs"
           path: engine.log
           retention-days: 14
+
+  #commit-hooks:
+    #name: Commit hooks
+    #runs-on: ubuntu-latest
+
+    #steps:
+      #- name: Checkout repository
+        #uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+        #with:
+          #fetch-depth: 0
+
+      #- name: Free disk space
+        #uses: ./.github/actions/free-disk-space
+
+      #- name: Set up Nix
+        #uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
+        #with:
+          #extra_nix_config: |
+            #access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      #- name: Set up magic Nix cache
+        #uses: DeterminateSystems/magic-nix-cache-action@b46e247b898aa56e6d2d2e728dc6df6c84fdb738 # v7
+
+      #- name: Prepare Nix shell
+        #run: nix develop --impure .#ci
+
+      #- name: Pre-commit hooks
+        #run: nix develop --impure .#ci -c pre-commit run -a
+
+      #- name: Check commit messages
+        #run: nix develop --impure .#ci -c pre-commit run --hook-stage manual
+
+  #dev:
+    #name: Developer environment
+    #runs-on: ubuntu-latest
+
+    #steps:
+      #- name: Checkout repository
+        #uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+
+      #- name: Set up Nix
+        #uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
+        #with:
+          #extra_nix_config: |
+            #access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      #- name: Set up magic Nix cache
+        #uses: DeterminateSystems/magic-nix-cache-action@b46e247b898aa56e6d2d2e728dc6df6c84fdb738 # v7
+
+      #- name: Check
+        #run: nix flake check --impure
+
+      #- name: Dev shell
+        #run: nix develop --impure
+
+  #artifacts:
+    #name: Artifacts
+    #uses: ./.github/workflows/artifacts.yaml
+    #with:
+      #publish: ${{ github.event_name == 'push' }}
+    #permissions:
+      #contents: read
+      #packages: write
+      #id-token: write
+      #security-events: write
+
+  #dependency-review:
+    #name: Dependency review
+    #runs-on: ubuntu-latest
+    #if: github.event_name == 'pull_request'
+
+    #steps:
+      #- name: Checkout repository
+        #uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+
+      #- name: Dependency Review
+        #uses: actions/dependency-review-action@72eb03d02c7872a771aacd928f3123ac62ad6d3a # v4.3.3
+
+  #fossa-scan:
+    #name: FOSSA Scan
+    #runs-on: ubuntu-latest
+    #if: github.event_name == 'push'
+
+    #steps:
+      #- name: Checkout repository
+        #uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+
+      #- name: Run FOSSA Scan
+        #uses: fossas/fossa-action@47ef11b1e1e3812e88dae436ccbd2d0cbd1adab0 # v1.3.3
+        #with:
+          #api-key: ${{secrets.FOSSA_API_KEY}}
+
+  #quickstart:
+    #name: Quickstart
+    #runs-on: ubuntu-latest
+
+    #steps:
+      #- name: Checkout repository
+        #uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+
+      #- name: Launch Docker Compose
+        #run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml up -d
+        #working-directory: quickstart
+
+      #- name: Wait for worker to become ready
+        #run: curl --retry 10 --retry-max-time 120 --retry-all-errors http://localhost:10000/healthz
+
+      #- name: Run tests
+        #uses: dagger/dagger-for-github@158efd19b6af5ff000289d6c7c507ada3c7b3b9b # v5.8.0
+        #with:
+          #verb: call
+          #args: --source .:default quickstart-test --service tcp://localhost:8888 --port 8888
+          #cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          #version: ${{ env.DAGGER_VERSION }}
+
+      #- name: Cleanup Docker Compose
+        #run: docker compose -f docker-compose.yaml -f docker-compose.ci.yaml down -v
+        #working-directory: quickstart
+        #if: always()
+
+  #e2e:
+    #name: E2E
+    #runs-on: ubuntu-latest
+
+    #steps:
+      #- name: Free Disk Space
+        #uses: jlumbroso/free-disk-space@v1.3.1
+        #with:
+          ## Runs quick, run rm in background
+          #tool-cache: true
+
+          ## These run slower as use apt to uninstall packages
+          ## Turned on by default, so we disable them
+          #android: false
+          #dotnet: false
+          #haskell: false
+          #large-packages: false
+          #docker-images: false
+          #swap-storage: false
+
+      #- name: Run pipeline
+        #uses: dagger/dagger-for-github@158efd19b6af5ff000289d6c7c507ada3c7b3b9b # v5.8.0
+        #with:
+          #verb: call
+          #module: github.com/${{ github.repository }}@${{ github.ref }}
+          #args: --ref ${{ github.ref }} etoe
+          #cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          #version: ${{ env.DAGGER_VERSION }}
+
+  #dagger:
+    #name: CI
+    #runs-on: ${{ github.actor == 'dependabot[bot]' && 'ubuntu-latest' || 'ubuntu-latest-large' }}
+
+    #steps:
+      #- name: Free Disk Space
+        #uses: jlumbroso/free-disk-space@v1.3.1
+        #with:
+          ## Runs quick, run rm in background
+          #tool-cache: true
+
+          ## These run slower as use apt to uninstall packages
+          ## Turned on by default, so we disable them
+          #android: false
+          #dotnet: false
+          #haskell: false
+          #large-packages: false
+          #docker-images: false
+          #swap-storage: false
+
+      #- name: Run pipeline
+        #uses: dagger/dagger-for-github@158efd19b6af5ff000289d6c7c507ada3c7b3b9b # v5.8.0
+        #timeout-minutes: 40
+        #with:
+          #verb: call
+          #module: github.com/${{ github.repository }}@${{ github.ref }}
+          #args: --ref ${{ github.ref }} ci
+          #cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+          #version: ${{ env.DAGGER_VERSION }}
+
+      #- name: Export Dagger Engine logs
+        #run: docker logs $(docker container list --all --filter 'name=^dagger-engine-*' --format '{{.Names}}') 2> engine.log
+        #if: always()
+
+      #- name: Upload Dagger Engine logs as artifact
+        #uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392 # v4.0.0
+        #if: always()
+        #with:
+          #name: "Dagger Engine logs"
+          #path: engine.log
+          #retention-days: 14
